@@ -1,0 +1,126 @@
+---
+title: "module1"
+output:
+  word_document: default
+  html_document: default
+date: "2022-11-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library('plyr')
+library(plotly)
+library(hrbrthemes)
+library(tidyr)
+```
+
+## R Markdown
+```{r}
+chip_dataset <- read.csv("C:/Users/rudai/Downloads/chip_dataset.csv")
+```
+
+```{r}
+head(chip_dataset)
+```
+
+```{r}
+summary(chip_dataset)
+```
+
+```{r}
+glimpse(chip_dataset)
+```
+
+
+```{r}
+chip_dataset<- data.frame(chip_dataset)
+```
+
+
+```{r}
+chip_dataset$Release.Date<-as.Date(chip_dataset$Release.Date)
+```
+
+
+
+
+```{r}
+chip_dataset[!duplicated(chip_dataset$product)]
+```
+```{r}
+chip_dataset=subset(chip_dataset,select = -c(X))
+```
+
+
+
+
+
+```{r}
+chip_dataset<-chip_dataset %>% arrange(chip_dataset$Release.Date)
+```
+```{r}
+market_share<-count(chip_dataset,'Vendor')
+market_share
+```
+
+```{r}
+vals<- market_share$freq
+labs <- market_share$Vendor
+percentage <- round(vals/sum(vals)*100)
+labs <- paste(labs,percentage)
+labs <- paste(labs,"%",sep="")
+pie(vals,labs,col=rainbow(length(labs)),main = "Pie char of market share")
+```
+
+```{r}
+gpu_count <- chip_dataset %>% group_by(chip_dataset$Vendor,chip_dataset$Type) %>%  dplyr::summarise(rec_count =  n()) 
+gpu_count
+```
+```{r}
+ ggplot(gpu_count, aes(x = gpu_count$`chip_dataset$Vendor`,fill= gpu_count$`chip_dataset$Type`  )) +
+  geom_bar(
+    aes(y = gpu_count$rec_count),
+    stat = "identity", position = position_dodge(0.8),
+    width = 0.7
+    ) +
+  scale_color_manual(values = c("#0073C2FF", "#EFC000FF"))+
+  scale_fill_manual(values = c("#0073C2FF", "#EFC000FF"))+ labs(x = 'Vendor', y = 'Count', 
+	title = "Number of CPUs and GPUs models by vendors")+scale_fill_discrete(name = "Type")
+```
+```{r}
+cpu_freq <- filter(chip_dataset, chip_dataset$Type == "CPU")
+cpu_freq$Release.Date<- as.Date(cpu_freq$Release.Date)
+
+ggplot(cpu_freq,aes(x = cpu_freq$Release.Date, y = cpu_freq$Freq..MHz.)) + geom_line(color = "red") + labs(x = 'Year', y = 'Freq (Mhz)') +ggtitle("Evolution of CPU Frequncy (Mhz) over years")
+```
+
+
+```{r}
+gpu_freq <- filter(chip_dataset,chip_dataset$Type=="GPU")
+gpu_freq$Release.Date<- as.Date(gpu_freq$Release.Date)
+ggplot(gpu_freq,aes(x = gpu_freq$Release.Date, y = gpu_freq$Freq..MHz.)) + geom_line(color = "blue") + labs(x = 'Year', y = 'Freq (Mhz)') +ggtitle("Evolution of GPU Frequncy (Mhz) over years")
+```
+
+```{r}
+
+chip_dataset$Release_Year <- year(chip_dataset$Release.Date)
+chip_dataset <- chip_dataset %>% mutate(Transistors..million. = replace(Transistors..million.,
+                                is.na(Transistors..million.),
+                                median(Transistors..million., na.rm = T)))
+gpu_count2 <- chip_dataset %>% group_by(Release_Year,Type) %>% summarise(
+            a_mean=(mean(Transistors..million.)))
+ggplot(gpu_count2, aes(x = gpu_count2$Release_Year,fill= gpu_count2$Type  )) +
+  geom_bar(
+    aes(y = gpu_count2$a_mean),
+    stat = "identity", position = position_dodge(0.8),
+    width = 0.7
+    ) +
+  scale_color_manual(values = c("#0073C2FF", "#EFC000FF"))+
+  scale_fill_manual(values = c("#0073C2FF", "#EFC000FF"))+ labs(x = 'Year', y = 'Mean', 
+	title = "Mean number of Transistors (million) by year")+scale_fill_discrete(name = "Type")
+```
+
